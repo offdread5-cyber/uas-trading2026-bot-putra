@@ -1,0 +1,26 @@
+name: snapshot-orderbook
+on:
+  schedule:
+    - cron: "5 */3 * * *"      # tiap 3 jam (UTC) = 8x per hari
+  workflow_dispatch: {}          # tombol "Run workflow" untuk uji manual
+permissions:
+  contents: write
+concurrency:
+  group: snapshot
+  cancel-in-progress: false
+jobs:
+  snap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Ambil snapshot
+        run: python scripts/snapshot.py
+      - name: Simpan ke repositori
+        run: |
+          git config user.name "snapshot-bot"
+          git config user.email "snapshot-bot@users.noreply.github.com"
+          git add data/snapshots
+          git diff --cached --quiet || (git commit -m "snapshot $(date -u +%FT%TZ)" && git push)
